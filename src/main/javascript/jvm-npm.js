@@ -33,6 +33,7 @@ module = (typeof module == 'undefined') ? {} :  module;
     this.core = core;
     this.parent = parent;
     this.children = [];
+    this.dir = new File(this.filename).getParent();
     this.filename = id;
     this.loaded = false;
 
@@ -56,13 +57,15 @@ module = (typeof module == 'undefined') ? {} :  module;
 
   Module._load = function _load(file, parent, core, main) {
     var module = new Module(file, parent, core);
-    var __FILENAME__ = module.filename;
     var body   = readFile(module.filename, module.core),
-        dir    = new File(module.filename).getParent(),
         args   = ['exports', 'module', 'require', '__filename', '__dirname'],
-        func   = new Function(args, body);
-    func.apply(module,
-        [module.exports, module, module.require, module.filename, dir]);
+        params = ['module.exports', 'module', 'module.require', 'module.filename', 'module.dir'];
+    module = load({ 
+      script: "(function(" + args.join(",") + ") { "
+                           + body + " })(" 
+                           + params.join(",") + "); module;",
+      name:   module.filename
+    })
     module.loaded = true;
     module.main = main;
     return module.exports;
@@ -234,7 +237,7 @@ module = (typeof module == 'undefined') ? {} :  module;
   function resolveCoreModule(id, root) {
     var name = normalizeName(id);
     var classloader = java.lang.Thread.currentThread().getContextClassLoader();
-    if (classloader.findResource(name))
+    if (classloader.getResource(name))
         return { path: name, core: true };
   }
 
